@@ -32,10 +32,10 @@ class Products(Base):
 
 class Inventory(Base):
     __tablename__ = 'inventory'
-    p_id = Column(String(20), ForeignKey(Products.p_id), primary_key=True,)
+    p_id = Column(String(20), ForeignKey(Products.p_id), primary_key = True)
     count = Column(Integer)
     price = Column(Integer)
-    s_id = Column(String(20), ForeignKey(Aistore.s_id), )
+    s_id = Column(String(20), ForeignKey(Aistore.s_id), primary_key=True)
     # 문자열(20), 외래키(AiStore.s_id), 주키 설정 하여 컬럼 생성
     product = relationship('Products') # products 테이블과 관계 형성되어 자동 조인(products 테이블의 주키가 외래키로 설정되어있어야함)
 
@@ -97,13 +97,11 @@ def get_menu(s_id):
         d['count'] = inventory[i].count
         menu.append(d)
 
-
     # a=db_session.query(Inventory, Products).join(Inventory.p_id == Products.p_id).all()
     # for i in a:
     #     print(i)
 
     return menu
-
 
 def set_product(s_id, p_id, price, count):
     a=Inventory.query.filter(Inventory.s_id == s_id, Inventory.p_id == p_id).all()
@@ -128,13 +126,46 @@ def buy_product(p_id, s_id, count):
     # inventory orm 의 재고가 입력된 재고 보다 클때 입력된 재고만큼 차감(함수 사용)
     # 커밋하여 데이터베이스 적용
 
-    inventory = Inventory.query.filter(Inventory.s_id == s_id, Inventory.p_id == p_id).all()
-    inventory[0].count -= count
+    inventory = db_session.query(Inventory).filter(Inventory.s_id == s_id, Inventory.p_id == p_id).all()[0]
+
+    if inventory.count > count:
+        inventory.count -= count
+        print(inventory.count)
+
+        db_session.commit()
+        return True
+    else:
+        return False
+
+    # inventory = db_session.get(Inventory, (p_id, s_id))
+    #
+    # if inventory.count > count:
+    #     inventory.sub_count(count)
+    #     db_session.commit()
+    #     return True
+    # else:
+    #     return False
+
+    #db_session.query(Inventory).filter(Inventory.p_id == p_id, Inventory.s_id == s_id).update({'count': inventory.count})
+
+
+
+
+    # inventory = db_session.get(Inventory, (p_id, s_id))
+    #
+    # if inventory.count > count:
+    #     inventory.sub_count(count)
+    #     db_session.commit()
+    #     return True
+    # else:
+    #     return False
+
+
+
+    # inventory = Inventory.query.filter(Inventory.s_id == s_id, Inventory.p_id == p_id).all()
+    # inventory[0].count -= count
     # print(inventory[0].count)
-    db_session.commit()
 
-
-    # db_session.query(Inventory).filter(Inventory.s_id == s_id, Inventory.p_id == p_id).update({'count': inventory[0].count})
+    # db_session.query(Inventory).filter(Inventory.p_id == p_id, Inventory.s_id == s_id).update({'count': inventory[0].count})
     # db_session.commit()
 
-    return True
