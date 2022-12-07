@@ -116,9 +116,10 @@ def set_product(s_id, p_id, price, count):
     if len(a) == 0:
         inventory = Inventory(p_id, count, price, s_id)
         db_session.add(inventory)
+        db_session.get(Aistore, s_id).products_num += 1
         db_session.commit()
 
-    # 없을때 상품 생성후 스토어의 product_num도 +1 (함수 사용)
+    
 
 def buy_product(p_id, s_id, count):
     # 입력된 재고 이상이 있을때 상품 구매
