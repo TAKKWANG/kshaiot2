@@ -110,7 +110,7 @@ def set_product(s_id, p_id, price, count):
 
     if len(a) != 0:
         db_session.query(Inventory).filter(Inventory.s_id == s_id, Inventory.p_id == p_id).update({'price': price})
-        db_session.query(Inventory).filter(Inventory.s_id == s_id, Inventory.p_id == p_id).update({'count': count})
+        db_session.get(Inventory, (p_id, s_id)).add_count(count)
         db_session.commit()
 
     if len(a) == 0:
