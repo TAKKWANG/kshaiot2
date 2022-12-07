@@ -116,7 +116,7 @@ def set_product(s_id, p_id, price, count):
     if len(a) == 0:
         inventory = Inventory(p_id, count, price, s_id)
         db_session.add(inventory)
-        db_session.get(Aistore, s_id).products_num += 1
+        db_session.get(Aistore, s_id).add_product()
         db_session.commit()
 
     
