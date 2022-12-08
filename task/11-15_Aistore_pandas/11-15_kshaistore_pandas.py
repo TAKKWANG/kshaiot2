@@ -1,5 +1,5 @@
 import pandas as pd
-import json
+
 
 class AiStore:
 
@@ -10,34 +10,40 @@ class AiStore:
         self.products_num = products_num
         self.inventory = inventory
 
-    def is_product(self, p_id):
-        product = self.inventory[self.inventory['p_id'] == p_id]
-        if len(product) == 0:
-            return False
-        else:
-            return True
-
-    # def add_product(self, p_id, count, price, idx):
-    #     # 인덱스가 재할당이 안되게 코드를 짜주는것이 정적으로 데이터를 사용하는데엔 좋음
-    #     # 데이터 분석을 위한 용도에는 컷캣등의 함수를 사용해도 무관
-    #     # pandas 의 사용목적은 데이터보관(DB)의 목적보단 보관된 데이터의 분석 목적이 더 강함
-    #     n_product = {'p_id': p_id, 'count': count, 'price': price, 's_id': self.s_id}
-    #     self.inventory.loc[idx] = n_product
-    #     self.products_num = len(self.inventory)
-    #     return n_product
-
-
     def set_product(self, p_id, s_id, count, price):
         if p_id in self.inventory.index:
             self.inventory.loc[(p_id, s_id), 'count'] += count
             self.inventory.loc[(p_id, s_id), 'price'] = price
-        else:
-            newproduct = pd.DataFrame([[p_id, count, price, s_id]],
-                               columns= ['p_id', 'count', 'price', 's_id'])
-            self.inventory=pd.concat([self.inventory, newproduct], ignore_index= True)
-            self.inventory = self.inventory.set_index(['p_id' , 's_id'], drop=False)
+            iv_df.loc[(p_id, s_id)] = self.inventory.loc[(p_id, s_id)]
+            return iv_df
 
-            print(self.inventory)
+        else:
+            n_product = pd.DataFrame([[p_id, count, price, s_id]],
+                                      columns=['p_id', 'count', 'price', 's_id'])
+            n_product = n_product.set_index(['p_id', 's_id'], drop=False)
+            #print(n_product)
+
+            self.inventory=pd.concat([self.inventory,n_product])
+            s_df.loc[s_id, 'products_num'] = len(self.inventory)
+
+            n_iv_df = pd.concat([iv_df, n_product])
+            #print(n_iv_df)
+
+            return n_iv_df
+
+            # n_product = {'p_id': p_id, 'count': count, 'price': price, 's_id': self.s_id}
+            # n_product = [ p_id, count, price, self.s_id]
+            # print(n_product)
+
+            #iv_df = iv_df.append(n_product)
+            #iv_df = pd.concat([iv_df, n_product])
+            #iv_df.sort_index()
+
+            # re_n_product = n_product.reset_index(drop=True)
+            # re_iv_df = iv_df.reset_index(drop=True)
+            # b = pd.concat([re_iv_df, re_n_product])
+            # a=b.sort_index()
+
 
     def buy_product(self, p_id, s_id, count, amount):
         if p_id not in self.inventory.index:
@@ -73,7 +79,7 @@ class AiStore:
     def get_inventory(self):
         return self.inventory
 
-    def show_products(self, p_df):
+    def show_products(self, ):
         for product in self.inventory.iloc:
             p_id = product['p_id']
             p_name = p_df.loc[p_id,'product']
@@ -85,15 +91,6 @@ class AiStore:
     def get_price(self, p_id, s_id):
         price = self.inventory.loc[(p_id, s_id), 'price']
         return price
-
-    def update_data(self, p_id, s_id):
-        # s_df[self.s_id] = {'s_id': self.s_id,
-        #                    'name': self.name,
-        #                    'locate': self.locate,
-        #                    'products_num': self.products_num,}
-
-        iv_df.loc[(p_id,s_id)] = self.inventory.loc[(p_id,s_id)]
-
 
 def create_store():
     s_name = input('스토어 이름 입력: ')
@@ -119,8 +116,9 @@ def show_list():
 def search_store(s_id):
     if s_id in s_df.index:
         storeseries = s_df.loc[s_id]
+        #inventory = iv_df.loc[(slice(None),s_id), :]
         inventory = iv_df[iv_df['s_id'] == s_id]
-
+        #print(inventory)
         store = AiStore(storeseries['name'],
                        storeseries['s_id'],
                        storeseries['locate'],
@@ -145,7 +143,7 @@ def show_store():
                   store.get_products_num(),
                   ))
 
-    store.show_products(p_df)
+    store.show_products()
 
 def buy():
     s_id = input('스토어 번호 입력: ')
@@ -153,9 +151,12 @@ def buy():
     if store is None:
         return
     print('구매 가능 상품')
-    store.show_products(p_df)
+    store.show_products()
 
     p_id = input('상품 아이디 입력:')
+    if p_id not in store.inventory['p_id']:
+        print('구매 가능한 상품이 아닙니다')
+        return
     count = int(input('구매 개수 입력: '))
 
     # 옵션
@@ -166,23 +167,29 @@ def buy():
     price = int(input('가격 입력: '))
 
     store.buy_product(p_id, s_id, count, price)
-    store.update_data(p_id, s_id)
+    iv_df.loc[(p_id, s_id)] = store.inventory.loc[(p_id, s_id)]
 
-def manager_product():
+
+def manager_product(iv_df):
 
     s_id = input('스토어 번호 입력: ')
     store = search_store(s_id)
     if store is None:
-        return
+        return iv_df
 
     print('등록 가능 상품')
     print(p_df)
     p_id = input('상품 아이디 입력: ')
+    if p_id not in p_df['p_id']:
+        print('잘못된 입력 입니다')
+        return iv_df
+
     count = int(input('재고 개수 입력: '))
     price = int(input('상품 가격 입력: '))
 
-    store.set_product(p_id, s_id, count, price)
-    store.update_data(p_id, s_id)
+    iv_df = store.set_product(p_id, s_id, count, price)
+    return(iv_df)
+
 
 def products_counts():
     reiv_df = iv_df.reset_index(drop=True)
@@ -212,7 +219,7 @@ if __name__ == '__main__':
     print('5 - 상품 관리')
     print('6 - csv 파일로 스토어, 재고현황 파일 출력')
     print('7 - 상품명별 전체 재고 개수 출력')
-
+    print('8 - 종료')
 
     while True:
         print('--'*30)
@@ -226,11 +233,13 @@ if __name__ == '__main__':
         elif input1 == '4':
             buy()
         elif input1 == '5':
-            manager_product()
+            iv_df = manager_product(iv_df)
         elif input1 == '6':
             s_df.to_csv('store_v2.csv', index= False)
             iv_df.to_csv('inventory_v2.csv', index= False)
         elif input1 == '7':
             products_counts()
+        elif input1 == '8':
+            break
         else:
             print('존재하지 않는 명령어 입니다.')
